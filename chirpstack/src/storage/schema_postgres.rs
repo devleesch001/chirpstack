@@ -310,6 +310,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    gateway_command_req_res_item (id) {
+        id -> Uuid,
+        gateway_id -> Bytea,
+        created_at -> Timestamptz,
+        exec_id -> Int4,
+        command -> Text,
+        stdin -> Bytea,
+        environment -> Jsonb,
+        response_at -> Nullable<Timestamptz>,
+        stdout -> Nullable<Bytea>,
+        stderr -> Nullable<Bytea>,
+        error -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     multicast_group (id) {
         id -> Uuid,
         application_id -> Uuid,
@@ -451,6 +467,7 @@ diesel::joinable!(fuota_deployment_gateway -> fuota_deployment (fuota_deployment
 diesel::joinable!(fuota_deployment_gateway -> gateway (gateway_id));
 diesel::joinable!(fuota_deployment_job -> fuota_deployment (fuota_deployment_id));
 diesel::joinable!(gateway -> tenant (tenant_id));
+diesel::joinable!(gateway_command_req_res_item -> gateway (gateway_id));
 diesel::joinable!(multicast_group -> application (application_id));
 diesel::joinable!(multicast_group_device -> device (dev_eui));
 diesel::joinable!(multicast_group_device -> multicast_group (multicast_group_id));
@@ -478,6 +495,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     fuota_deployment_gateway,
     fuota_deployment_job,
     gateway,
+    gateway_command_req_res_item,
     multicast_group,
     multicast_group_device,
     multicast_group_gateway,

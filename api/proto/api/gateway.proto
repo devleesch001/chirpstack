@@ -104,6 +104,20 @@ service GatewayService {
             delete: "/api/gateways/relay-gateways/{tenant_id}/{relay_id}"
         };
     }
+
+    rpc CreateCommandReqResGateway(CreateCommandReqResGatewayRequest) returns (CreateCommandReqResGatewayResponse) {
+        option(google.api.http) = {
+            post: "/api/gateways/{gateway_id}/commands"
+            body: "*"
+        };
+    }
+
+    rpc ListCommandReqResGateway(ListCommandReqResGatewaysRequest) returns (ListCommandReqResGatewaysResponse) {
+        option(google.api.http) = {
+            get: "/api/gateways/{gateway_id}/commands"
+            body: "*"
+        };
+    }
 }
 
 enum GatewayState {
@@ -434,4 +448,72 @@ message RelayGateway {
 
     // Region configuration ID.
     string region_config_id = 6;
+}
+
+message CreateCommandReqResGatewayRequest {
+    // Gateway ID (EUI64).
+    string gateway_id = 1;
+
+    // Command to execute.
+    // This command must be pre-configured in the LoRa Gateway Bridge
+    // configuration.
+    string command = 2;
+
+    // Standard input.
+    bytes stdin = 3;
+
+    // Environment variables.
+    map<string, string> environment = 4;
+}
+
+message CreateCommandReqResGatewayResponse {
+    // Execution request ID.
+    uint32 exec_id = 1;
+}
+
+message ListCommandReqResGatewaysRequest {
+    // Max number of relay-gateways to return in the result-set.
+    // If not set, it will be treated as 0, and the response will only return the total_count.
+    uint32 limit = 1;
+
+    // Offset in the result-set (for pagination).
+    uint32 offset = 2;
+
+    // Tenant ID (UUID) to filter relay-gateways on.
+    // To list all relay-gateways as a global admin user, this field can be left blank.
+    string gateway_id = 3;
+}
+
+message ListCommandReqResGatewaysResponse {
+    uint32 total_count = 1;
+
+    // Result-set.
+    repeated CommandReqResGatewayItem result = 2;
+}
+
+message CommandReqResGatewayItem {
+    string gateway_id = 1;
+
+    // Command to execute.
+    // This command must be pre-configured in the LoRa Gateway Bridge
+    // configuration.
+    string command = 2;
+
+    // Standard input.
+    bytes stdin = 3;
+
+    // Environment variables.
+    map<string, string> environment = 4;
+
+    // Execution request ID.
+    uint32 exec_id = 5;
+
+    // Standard output.
+    bytes stdout = 6;
+
+    // Standard error.
+    bytes stderr = 7;
+
+    // Exit code.
+    string error = 8;
 }

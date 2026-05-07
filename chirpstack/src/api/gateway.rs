@@ -2,13 +2,6 @@ use std::collections::HashSet;
 use std::str::FromStr;
 use std::time::SystemTime;
 
-use chirpstack_api::api::gateway_service_server::GatewayService;
-use chirpstack_api::tonic::{self, Request, Response, Status};
-use chirpstack_api::{api, common};
-use chrono::{DateTime, Duration, Local, Utc};
-use lrwn::EUI64;
-use uuid::Uuid;
-
 use super::auth::validator;
 use super::error::ToStatus;
 use super::helpers::{self, FromProto};
@@ -16,8 +9,16 @@ use crate::certificate;
 use crate::storage::{
     fields,
     gateway::{self, RelayId},
+    gateway_command_req_res_item::{self},
     metrics,
 };
+use chirpstack_api::api::gateway_service_server::GatewayService;
+use chirpstack_api::api::{ListCommandReqResGatewaysRequest, ListCommandReqResGatewaysResponse};
+use chirpstack_api::tonic::{self, Request, Response, Status};
+use chirpstack_api::{api, common};
+use chrono::{DateTime, Duration, Local, Utc};
+use lrwn::EUI64;
+use uuid::Uuid;
 
 pub struct Gateway {
     validator: validator::RequestValidator,
@@ -975,6 +976,58 @@ impl GatewayService for Gateway {
         }
 
         Ok(resp)
+    }
+
+    async fn create_command_req_res_gateway(
+        &self,
+        request: Request<api::CreateCommandReqResGatewayRequest>,
+    ) -> Result<Response<api::CreateCommandReqResGatewayResponse>, Status> {
+        let req = request.get_ref();
+        let gw_id = EUI64::from_str(&req.gateway_id).map_err(|e| e.status())?;
+
+        self.validator
+            .validate(
+                request.extensions(),
+                validator::ValidateGatewayAccess::new(validator::Flag::Read, gw_id),
+            )
+            .await?;
+
+        let gw = gateway::get(&gw_id).await.map_err(|e| e.status())?;
+
+        let gwc = gateway_command_req_res_item::GatewayCommandReqResItem {
+            id: Uuid::new_v4().into(),
+            gateway_id: gw.gateway_id,
+            created_at: Utc::now(),
+            // todo use `sequential` instead `random`
+            exec_id: rand::random(),
+            command: req.command.clone(),
+            stdin: req.stdin.clone(),
+            environment: fields::KeyValue::new(req.environment.clone()),
+            response_at: None,
+            stdout: None,
+            stderr: None,
+            error: None,
+        };
+
+        let gwc = gateway_command_req_res_item::create(gwc)
+            .await
+            .map_err(|e| e.status())?;
+
+        let mut resp = Response::new(api::CreateCommandReqResGatewayResponse {
+            exec_id: gwc.exec_id as u32,
+        });
+
+        resp.metadata_mut()
+            .insert("x-log-gateway_id", req.gateway_id.parse().unwrap());
+
+        Ok(resp)
+    }
+
+    async fn list_command_req_res_gateway(
+        &self,
+        request: tonic::Request<ListCommandReqResGatewaysRequest>,
+    ) -> Result<tonic::Response<ListCommandReqResGatewaysResponse>, tonic::Status> {
+        todo!()
     }
 }
 

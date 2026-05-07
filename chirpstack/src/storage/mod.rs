@@ -45,6 +45,8 @@ mod sqlite;
 pub mod tenant;
 pub mod user;
 
+pub mod gateway_command_req_res_item;
+
 use crate::monitoring::prometheus;
 
 static ASYNC_REDIS_POOL: LazyLock<TokioRwLock<Option<AsyncRedisPool>>> =
